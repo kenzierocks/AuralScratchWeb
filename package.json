@@ -1,0 +1,67 @@
+{
+  "name": "aural-scratch",
+  "version": "1.0.0",
+  "description": "JS client for the Aural Scratch system",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc -p js && rollup -c",
+    "dev": "tsc -w -p js & sleep 5; rollup -c -w"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kenzierocks/AuralScratchWeb.git"
+  },
+  "keywords": [
+    "music player",
+    "aural scratch"
+  ],
+  "author": "Kenzie Togami",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kenzierocks/AuralScratchWeb/issues"
+  },
+  "homepage": "https://github.com/kenzierocks/AuralScratchWeb#readme",
+  "devDependencies": {
+    "@types/bootstrap": "^3.3.35",
+    "@types/jquery": "^3.2.11",
+    "@types/react": "^15.6.1",
+    "@types/react-dom": "^15.5.3",
+    "@types/react-redux": "^5.0.3",
+    "@types/reactstrap": "^4.3.9",
+    "@types/tether": "^1.4.2",
+    "@types/uuid": "^3.4.0",
+    "babel-core": "^6.26.0",
+    "babel-plugin-external-helpers": "^6.22.0",
+    "babel-preset-env": "^1.6.0",
+    "bootstrap": "^3.3.7",
+    "chokidar-cli": "^1.2.0",
+    "firebase": "^4.2.0",
+    "firebaseui": "^2.3.0",
+    "jquery": "^3.2.1",
+    "jsmediatags": "^3.7.0",
+    "live-server": "^1.2.0",
+    "re-reselect": "^0.6.3",
+    "react": "^15.6.1",
+    "react-dom": "^15.6.1",
+    "react-redux": "^5.0.6",
+    "react-transition-group": "^1.2.0",
+    "reactstrap": "^4.8.0",
+    "redux": "^3.7.2",
+    "reselect": "^3.0.1",
+    "rollup": "^0.47.5",
+    "rollup-plugin-babel": "^3.0.2",
+    "rollup-plugin-commonjs": "^8.1.0",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "rollup-plugin-replace": "^1.1.1",
+    "rollup-plugin-sourcemaps": "^0.4.2",
+    "rollup-plugin-uglify": "^2.0.1",
+    "rollup-watch": "^4.3.1",
+    "typescript": "^2.4.2",
+    "uglify-es": "^3.0.27"
+  },
+  "dependencies": {
+    "object.entries": "^1.0.4",
+    "uuid": "^3.1.0"
+  }
+}

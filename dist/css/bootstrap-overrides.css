@@ -1,0 +1,29 @@
+body {
+    font-size: 1rem;
+}
+
+.navbar-brand {
+    font-size: 2rem;
+}
+
+/* what the actual fuck browsers... */
+.cfc-center {
+    text-align: center;
+    width: 100%;
+}
+
+.custom-file-input {
+    min-width: 0;
+    width: 0;
+    opacity: 0;
+}
+
+.cfc-hovering.custom-file-control::before {
+    background-color: #fefde7;
+}
+
+#add-song-button {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    display: block
+}

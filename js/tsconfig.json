@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2015",
+    "module": "es2015",
+    "lib": [
+      "ES2015",
+      "ES5",
+      "DOM",
+      "ScriptHost"
+    ],
+    "allowJs": true,
+    "checkJs": true,
+    "jsx": "react",
+    "sourceMap": true,
+    "outDir": "../ts-bin",
+    "strict": true,
+    "noImplicitReturns": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "typeRoots": [
+      "../typings"
+    ]
+  }
+}
