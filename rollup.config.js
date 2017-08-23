@@ -36,16 +36,20 @@ if (process.env['ENVIRONMENT'] !== 'DEV') {
     );
 }
 export default {
-    entry: 'ts-bin/client.js',
-    format: 'iife',
-    dest: dest,
-    moduleName: 'auralScratch',
+    input: 'ts-bin/client.js',
+    output: {
+        format: 'iife',
+        file: dest,
+        name: 'auralScratch',
+        sourcemap: true
+    },
     plugins: plugins,
     globals: {
         "jquery": "jQuery",
         "jsmediatags": "jsmediatags",
         "firebase": "firebase",
         "firebaseui": "firebaseui",
+        "moment": "moment",
         "react": "React",
         "react-dom": "ReactDOM",
         "redux": "Redux",
@@ -58,13 +62,13 @@ export default {
         "jsmediatags",
         "firebase",
         "firebaseui",
+        "moment",
         "react",
         "react-dom",
         "redux",
         "react-redux",
         "reactstrap"
     ],
-    sourceMap: true,
     watch: {
         useChokidar: false,
         include: ['ts-bin/**']

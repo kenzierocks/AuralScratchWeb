@@ -1,6 +1,6 @@
 import {React} from "../routes/rbase";
 import RS from "reactstrap";
-import {Song, Tag, TagCategory, TCType} from "../datatypes/main";
+import {Song, Tag, TagCategory, TagCategoryMap, TCType} from "../datatypes/main";
 import {FormEvent, SyntheticEvent} from "react";
 import {checkNotNull} from "../preconditions";
 import {TC_UUID} from "../idConstants";
@@ -12,7 +12,7 @@ import DataSnapshot = firebase.database.DataSnapshot;
 
 type ESDProps = {
     song: Song
-    tagCategories: TagCategory[],
+    tagCategories: TagCategoryMap,
     closeDialog: () => void
 };
 
@@ -31,7 +31,7 @@ export class EditSongDialog extends React.Component<ESDProps, {}> {
     }
 
     recoverTagData(elements: HTMLFormControlsCollection): Tag[] {
-        return this.props.tagCategories.map(tc => {
+        return Array.from(this.props.tagCategories.values()).map(tc => {
             const name = tc.name;
             const ident = 'tc' + name.replace(' ', '_');
             const tcItem = elements.namedItem(ident);
@@ -106,7 +106,7 @@ export class EditSongDialog extends React.Component<ESDProps, {}> {
     }
 
     render() {
-        const formGroups = this.props.tagCategories.map((tc) => {
+        const formGroups = Array.from(this.props.tagCategories.values()).map((tc) => {
             const name = tc.name;
             const ident = 'tc' + name.replace(' ', '_');
             const type = TCType.getFormType(tc.type);

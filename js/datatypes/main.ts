@@ -1,3 +1,5 @@
+import moment from "moment";
+
 export interface StringKeyedObject<T> {
     [key: string]: T | undefined
 }
@@ -55,6 +57,17 @@ export module TCType {
                 return undefined;
         }
     }
+    export function formatTag(type: TCType, name: string, value: any): any {
+        switch (type) {
+            case TCType.STRING:
+            case TCType.NUMBER:
+                return `${name}: ${value}`;
+            case TCType.BOOLEAN:
+                return name;
+            case TCType.DATE:
+                return `${name}: ${moment(value).format('lll')}`;
+        }
+    }
 }
 
 export interface TagCategory extends Named {
@@ -97,7 +110,7 @@ export interface SongListDisplaySettings extends Keyed {
 }
 
 export interface FilledSLDisplaySettings extends Keyed {
-    tagCategories: TagCategory[]
+    tagCategories: TagCategoryMap
     /**
      * index into tagCategories
      */

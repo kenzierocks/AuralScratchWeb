@@ -27,3 +27,7 @@ body {
     overflow: hidden;
     display: block
 }
+
+.cursor-pointer {
+    cursor: pointer;
+}

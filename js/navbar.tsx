@@ -19,7 +19,6 @@ class NavbarDatum {
 const navbarData = [
     new NavbarDatum("Home", "#"),
     new NavbarDatum("Songs", "#songs"),
-    new NavbarDatum("Tags", "#tags"),
     new NavbarDatum("Tag Categories", "#tag-categories"),
     new NavbarDatum("Song Lists", "#lists")
 ];
@@ -40,6 +39,8 @@ class PrimaryNavContainer extends React.Component<{}, { active: string }> {
     }
 
     componentDidMount() {
+        // immediately update, just in case
+        this.hashChangeHandler();
         $(window).on('hashchange', this.hashChangeHandler);
     }
 

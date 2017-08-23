@@ -1,19 +1,25 @@
 import {React} from "./rbase";
-import {FilledSLDisplaySettings, Song, SongListDisplaySettings, TagCategory, TagCategoryMap} from "../datatypes/main";
+import {
+    FilledSLDisplaySettings,
+    Song,
+    SongListDisplaySettings, Tag,
+    TagCategory,
+    TagCategoryMap, TCType
+} from "../datatypes/main";
 import {connectAdvanced} from "react-redux";
 import {InternalState} from "../datatypes/redux";
 import createCachedSelector from "re-reselect";
 import RS from "reactstrap";
 import {SimpleModal} from "../components/simpleModal";
 import {EditSongDialog} from "../components/editSongDialog";
-import {TC_UUID} from "../idConstants";
-import {optional} from "../optional";
+import {checkNotNull, isNullOrUndefined} from "../preconditions";
+import {hashColor} from "../color";
+import {STC_NAME, TC_UUID} from "../idConstants";
 
 
 type SongTableRowProps = {
     song: Song,
-    tagCategories: TagCategory[]
-    tagCatColElements: any[],
+    tagCategories: TagCategoryMap
     index: number
 };
 
@@ -32,25 +38,33 @@ class SongTableRow extends React.Component<SongTableRowProps, { open: boolean }>
     };
 
     render() {
-        const cols = this.props.tagCategories.map(tc => {
-            const assocTag = this.props.song.sortingTags[TC_UUID(tc)];
-            return <td key={TC_UUID(tc)}>
-                {typeof assocTag !== "undefined"
-                    ? optional(this.props.song.tags[assocTag])
-                        .map(tag => tag.value).orElse('Error, missing assocTag ' + assocTag)
-                    : ''}
-            </td>;
+        let nameTag: Tag = {category: '', value: undefined};
+        const tags = this.props.song.tags;
+        const badges = tags.map((tag, i) => {
+            // special NAME handling: we actually use the field in the table
+            if (tag.category === TC_UUID(STC_NAME)) {
+                nameTag = tag;
+                return <span key={i}/>;
+            }
+            if (typeof tag.value === "undefined" || tag.value === '') {
+                return <span key={i}/>;
+            }
+            const tagCat = checkNotNull(this.props.tagCategories.get(tag.category));
+            return <span key={i} className="badge badge-pill badge-default m-1 float-left" style={{
+                backgroundColor: '#' + hashColor(tagCat.name)
+            }}>
+
+                {TCType.formatTag(tagCat.type, tagCat.name, tag.value)}
+            </span>;
         });
-        while (cols.length < this.props.tagCatColElements.length) {
-            cols.push(<td key={cols.length}/>);
-        }
-        return <tr key={this.props.song.key} onClick={this.toggle}>
+        return <tr key={this.props.song.key} onClick={this.toggle} className="cursor-pointer">
             <SimpleModal toggle={this.toggle} open={this.state.open} title="Edit Song" backdrop="static">
                 <EditSongDialog song={this.props.song} tagCategories={this.props.tagCategories}
                                 closeDialog={this.toggle}/>
             </SimpleModal>
             <td>{this.props.index + 1}</td>
-            {cols}
+            <td style={{whiteSpace: "nowrap"}}>{nameTag.value}</td>
+            <td><h4>{badges}</h4></td>
         </tr>;
     }
 }
@@ -63,22 +77,18 @@ type SongListTableProps = {
 
 function SongListTable(props: SongListTableProps) {
     const displaySettings = props.displaySettings;
-    let tagCategories: any[] = [];
     let rows: any[] = [];
     if (displaySettings) {
-        tagCategories = displaySettings.tagCategories.map(tc =>
-            <th className="text-center" key={tc.name}>{tc.name}</th>
-        );
         rows = props.songs.map((song: Song, index) =>
-            <SongTableRow song={song} tagCategories={displaySettings.tagCategories} tagCatColElements={tagCategories}
-                          index={index}/>
+            <SongTableRow song={song} tagCategories={displaySettings.tagCategories} index={index} key={index}/>
         );
     }
     return <RS.Table bordered={true} striped={true} hover={true}>
         <thead className="thead-inverse">
         <tr>
             <th className="text-center">#</th>
-            {tagCategories}
+            <th className="text-center">Name</th>
+            <th className="text-center">Tag Cloud</th>
         </tr>
         </thead>
         <tbody>
@@ -88,16 +98,13 @@ function SongListTable(props: SongListTableProps) {
 }
 
 function fillDisplaySettings(state: InternalState, displaySettingsFb: SongListDisplaySettings): FilledSLDisplaySettings | undefined {
-    const tagCategories = new Array<TagCategory>(displaySettingsFb.tagCategories.length);
-    let i = 0;
-    for (let tc of displaySettingsFb.tagCategories) {
-        const category = state.tagCategories && state.tagCategories.get(tc);
-        if (typeof category === 'undefined') {
-            return undefined;
+    const tagCategories: TagCategoryMap = new Map(displaySettingsFb.tagCategories.map((tc): [string, TagCategory] => {
+        const tagCat = state.tagCategories && state.tagCategories.get(tc);
+        if (isNullOrUndefined(tagCat)) {
+            throw new Error("undefined categories");
         }
-        tagCategories[i] = category;
-        i++;
-    }
+        return [tc, tagCat];
+    }));
     return {
         key: displaySettingsFb.key,
         tagCategories: tagCategories,
