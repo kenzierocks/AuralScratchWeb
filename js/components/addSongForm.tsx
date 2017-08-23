@@ -2,15 +2,16 @@ import {React} from "../routes/rbase";
 import RS from "reactstrap";
 import {ChangeEvent, FormEvent, InputHTMLAttributes} from "react";
 import {checkNotNull} from "../preconditions";
-import {firebaseDb, firebase} from "../firebase/firebaseSetup";
+import {firebase, firebaseDb} from "../firebase/firebaseSetup";
+import {REDUX_STORE} from "../datatypes/redux";
+import {songLists, songs} from "../datatypes/api";
+import {STC_ALBUM, STC_ARTIST, STC_DATE_ADDED, STC_LENGTH, STC_NAME, TC_UUID} from "../idConstants";
+import jsmediatags from "jsmediatags";
+import {StringKeyedObject, Tag, TagCategory} from "../datatypes/main";
 import UploadTaskSnapshot = firebase.storage.UploadTaskSnapshot;
 import UploadTask = firebase.storage.UploadTask;
 import TaskState = firebase.storage.TaskState;
-import {REDUX_STORE} from "../datatypes/redux";
-import {songLists, songs} from "../datatypes/api";
-import {STC_ALBUM, STC_ARTIST, STC_DATE_MODIFIED, STC_LENGTH, STC_NAME, TC_UUID} from "../idConstants";
-import jsmediatags, {TagObject} from "jsmediatags";
-import {Tag, TagCategory} from "../datatypes/main";
+import Reference = firebase.database.Reference;
 
 const storageArea = firebase.storage().ref('songs');
 const nameReserver = firebaseDb.ref('songNameReservation');
@@ -66,9 +67,12 @@ function insertSongIntoLibrary(asfRef: string, possibleTags: Tag[]) {
     const key = songs.push({
         'audioStorageRef': asfRef
     });
-    possibleTags.forEach(tag =>
-        key.child('tags').push(tag)
-    );
+    const keyTags: Reference = key.child('tags');
+    const keySortingTags: Reference = key.child('sortingTags');
+    possibleTags.forEach((tag, i) => {
+        keyTags.push(tag);
+        keySortingTags.child(tag.category).set(i);
+    });
     const library = songLists.ref.child(libraryUuid);
     library.child('songs').push(key.key);
 }
@@ -129,7 +133,7 @@ export class AddSongForm extends React.Component<ASFProps, ASFState> {
                     });
                 }
                 tags.push({
-                    category: TC_UUID(STC_DATE_MODIFIED),
+                    category: TC_UUID(STC_DATE_ADDED),
                     value: firebase.database.ServerValue.TIMESTAMP
                 });
                 tags.push({

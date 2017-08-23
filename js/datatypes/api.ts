@@ -1,9 +1,7 @@
 import {firebaseDb} from "../firebase/firebaseSetup";
 import firebase from "firebase";
-import uuid5 from "uuid/v5";
 import {
     Keyed,
-    Named,
     Song,
     SongList,
     SongListDisplaySettings,
@@ -13,7 +11,7 @@ import {
     TagCategory
 } from "./main";
 import {checkNotNull} from "../preconditions";
-import {STC_ALBUM, STC_ARTIST, STC_DATE_MODIFIED, STC_LENGTH, STC_NAME, TAG_CATEGORY, TC_UUID} from "../idConstants";
+import {STC_ALBUM, STC_ARTIST, STC_DATE_ADDED, STC_LENGTH, STC_NAME, TC_UUID} from "../idConstants";
 import Reference = firebase.database.Reference;
 import DataSnapshot = firebase.database.DataSnapshot;
 
@@ -24,7 +22,7 @@ const REFS = {
     'displaySettings': firebaseDb.ref('songListDisplaySettings')
 };
 
-interface FBSong extends Named {
+interface FBSong {
     audioStorageRef: string
     tags: StringKeyedObject<Tag>
     sortingTags: StringKeyedObject<string>
@@ -55,6 +53,15 @@ function convertToList<T>(snap: DataSnapshot, conversionFunction: DataSnapshotDe
     return list;
 }
 
+function convertToSet<T>(snap: DataSnapshot, conversionFunction: DataSnapshotDeserializer<T> = (val => val.val())) {
+    const list = new Set<T>();
+    snap.forEach(tSnap => {
+        list.add(conversionFunction(tSnap));
+        return false;
+    });
+    return list;
+}
+
 export interface ApiAccess<T, I> {
     ref: Reference
 
@@ -64,26 +71,39 @@ export interface ApiAccess<T, I> {
 
     push(data: I): Reference
 
+    set(data: T): Promise<void>
+
     getAll(): Promise<T[]>
 }
 
-function apiAccess<K extends Keyed, I>(ref: Reference, {getter, initializer}: {
-    getter: DataSnapshotDeserializer<K>, initializer: (initData: I) => any
-}): ApiAccess<K, I> {
+interface ApiAccessImplData<K extends Keyed, I> {
+    getter: DataSnapshotDeserializer<K>
+    initializer: (initData: I) => any
+    setter: (data: K, ref: Reference) => any[] | Promise<any[]>
+}
+
+function apiAccess<K extends Keyed, I>(ref: Reference, impl: ApiAccessImplData<K, I>): ApiAccess<K, I> {
     return {
         ref: ref,
         once(key: string) {
-            return get(ref, key, getter);
+            return get(ref, key, impl.getter);
         },
         convert(fbData) {
-            return getter(fbData);
+            return impl.getter(fbData);
         },
         push(initData: I) {
-            return ref.push(initializer(initData));
+            return ref.push(impl.initializer(initData));
+        },
+        set(data: K) {
+            const keyRef = ref.child(data.key);
+            return Promise.resolve(impl.setter(data, keyRef)).then((array: any[]) => {
+                return Promise.all(array);
+            }).then(() => {
+            });
         },
         getAll() {
             return Promise.resolve(ref.once('value'))
-                .then(snap => convertToList<K>(snap, getter));
+                .then(snap => convertToList<K>(snap, impl.getter));
         }
     }
 }
@@ -93,15 +113,25 @@ export const songs = apiAccess<Song, InitSong>(REFS.songs,
         getter(snap) {
             return {
                 key: checkNotNull(snap.key),
-                name: snap.child('name').val(),
                 audioStorageRef: snap.child('audioStorageRef').val(),
-                tags: convertToList<Tag>(snap.child('tags')),
+                tags: convertToList<Tag>(snap.child('tags'), val => {
+                    const tag: Tag = val.val();
+                    tag._key = val.key || undefined;
+                    return tag;
+                }),
                 sortingTags: snap.child('sortingTags').val() || {}
             };
         },
+        setter(data: Song, ref: Reference) {
+            const tagsRef = ref.child('tags');
+            return Promise.resolve(tagsRef.set({})).then(() => [
+                ref.child('audioStorageRef').set(data.audioStorageRef),
+                ref.child('sortingTags').set(data.sortingTags),
+                Promise.all(data.tags.map(tag => tagsRef.push(tag)))
+            ]);
+        },
         initializer(data): FBSong {
             return {
-                name: '',
                 audioStorageRef: data.audioStorageRef,
                 tags: {},
                 sortingTags: {}
@@ -119,10 +149,13 @@ export const tagCategories: ApiAccess<TagCategory, InitTagCategory> = {
         return fbData.val();
     },
     push(data) {
-        const key = uuid5(data.name, TAG_CATEGORY);
+        const key = TC_UUID(data);
         const ref = REFS.tagCategories.child(key);
         ref.set(data);
         return ref;
+    },
+    set(data) {
+        return Promise.resolve(REFS.tagCategories.child(TC_UUID(data)).set(data));
     },
     getAll() {
         return Promise.resolve(REFS.tagCategories.once('value'))
@@ -140,6 +173,22 @@ export const songLists = apiAccess<SongList, InitSongList>(REFS.songLists,
                 displaySettings: snap.child('displaySettings').val()
             };
         },
+        setter(data: SongList, ref: Reference) {
+            const songsRef = ref.child('songs');
+            const existingSongsP = Promise.resolve(songsRef.once('value'))
+                .then(snap => convertToSet<string>(snap.val()));
+            return [
+                ref.child('name').set(data.name),
+                ref.child('displaySettings').set(data.displaySettings),
+                existingSongsP.then(existingSongs =>
+                    Promise.all(data.songs.map((song: string) => {
+                        if (!existingSongs.has(song)) {
+                            songsRef.push(song);
+                        }
+                    }))
+                )
+            ];
+        },
         initializer(data) {
             return {...data, displaySettings: createDefaultDisplaySettings().key};
         }
@@ -150,7 +199,7 @@ const defaultTagOrder = [
     TC_UUID(STC_NAME),
     TC_UUID(STC_ARTIST),
     TC_UUID(STC_ALBUM),
-    TC_UUID(STC_DATE_MODIFIED),
+    TC_UUID(STC_DATE_ADDED),
     TC_UUID(STC_LENGTH)
 ];
 
@@ -176,6 +225,22 @@ export const songListDisplaySettings = apiAccess<SongListDisplaySettings, InitSo
                 sortingTagCategory: snap.child('sortingTagCategory').val(),
                 sortDirection: snap.child('sortDirection').val()
             };
+        },
+        setter(data: SongListDisplaySettings, ref: Reference) {
+            const tagCategoriesRef = ref.child('tagCategories');
+            const existingTCP = Promise.resolve(tagCategoriesRef.once('value'))
+                .then(snap => convertToSet<string>(snap.val()));
+            return [
+                ref.child('sortingTagCategory').set(data.sortingTagCategory),
+                ref.child('sortDirection').set(data.sortDirection),
+                existingTCP.then(existingTC =>
+                    Promise.all(data.tagCategories.map((song: string) => {
+                        if (!existingTC.has(song)) {
+                            tagCategoriesRef.push(song);
+                        }
+                    }))
+                )
+            ];
         },
         initializer(data) {
             return {

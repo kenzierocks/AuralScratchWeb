@@ -1,5 +1,5 @@
 export interface StringKeyedObject<T> {
-    [key: string]: T
+    [key: string]: T | undefined
 }
 
 export interface Keyed {
@@ -39,6 +39,17 @@ export module TCType {
             case TCType.NUMBER:
                 return value;
             case TCType.BOOLEAN:
+                return value !== 'false';
+            case TCType.DATE:
+                return undefined;
+        }
+    }
+    export function getTagValue(type: TCType, value: any): any {
+        switch (type) {
+            case TCType.STRING:
+            case TCType.NUMBER:
+                return value;
+            case TCType.BOOLEAN:
                 return !!value;
             case TCType.DATE:
                 return undefined;
@@ -48,6 +59,7 @@ export module TCType {
 
 export interface TagCategory extends Named {
     type: TCType
+    maximumTags?: number
 }
 
 export interface Tag {
@@ -63,9 +75,9 @@ export interface Song extends Keyed {
     audioStorageRef: string
     tags: Tag[]
     /**
-     * Map from TagCategory id to Tag representing it.
+     * Map from TagCategory id to index in tags, pointing to the Tag representing it.
      */
-    sortingTags: StringKeyedObject<string>
+    sortingTags: StringKeyedObject<number>
 }
 
 export interface SongList extends Named, Keyed {

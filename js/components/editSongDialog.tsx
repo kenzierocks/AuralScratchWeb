@@ -1,6 +1,6 @@
 import {React} from "../routes/rbase";
 import RS from "reactstrap";
-import {Song, TagCategory, TCType} from "../datatypes/main";
+import {Song, Tag, TagCategory, TCType} from "../datatypes/main";
 import {FormEvent, SyntheticEvent} from "react";
 import {checkNotNull} from "../preconditions";
 import {TC_UUID} from "../idConstants";
@@ -16,11 +16,50 @@ type ESDProps = {
     closeDialog: () => void
 };
 
+const TAG_UNDEFINED = {
+    category: "",
+    value: undefined
+};
+
 export class EditSongDialog extends React.Component<ESDProps, {}> {
+
+    private tagCatToTagMap = new Map<string, Tag>();
+
+    constructor(props: ESDProps) {
+        super(props);
+        this.tagCatToTagMap = new Map(props.song.tags.map((t): [string, Tag] => [t.category, t]));
+    }
+
+    recoverTagData(elements: HTMLFormControlsCollection): Tag[] {
+        return this.props.tagCategories.map(tc => {
+            const name = tc.name;
+            const ident = 'tc' + name.replace(' ', '_');
+            const tcItem = elements.namedItem(ident);
+            if (tcItem === null) {
+                const old = this.tagCatToTagMap.get(TC_UUID(tc));
+                if (typeof old !== "undefined") {
+                    return old;
+                }
+                return TAG_UNDEFINED;
+            }
+            return {
+                category: TC_UUID(tc),
+                value: TCType.getTagValue(tc.type, (tcItem as HTMLInputElement).value)
+            };
+        }).filter(t => t !== TAG_UNDEFINED);
+    }
 
     applyEdits = (e: FormEvent<HTMLFormElement>) => {
         try {
-            console.log(e.currentTarget.elements);
+            const song: Song = {...this.props.song,
+                tags: this.recoverTagData(e.currentTarget.elements)
+            };
+            song.tags.forEach((t, i) => {
+                song.sortingTags[t.category] = i
+            });
+            songs.set(song)
+                .then(() => this.props.closeDialog())
+                .catch(e => console.log(e));
         } finally {
             e.preventDefault();
         }
@@ -28,6 +67,10 @@ export class EditSongDialog extends React.Component<ESDProps, {}> {
 
     deleteSong = (e: SyntheticEvent<HTMLButtonElement>) => {
         try {
+            const ok = confirm("Are you sure you want to delete this song?");
+            if (!ok) {
+                return;
+            }
             const libraryRef: Reference = songLists.ref.child(checkNotNull(REDUX_STORE.getState().librarySongList));
             const promise = libraryRef.child('songs').once('value').then((snap: DataSnapshot) => {
                 return new Promise((resolve, reject) => {
@@ -75,7 +118,7 @@ export class EditSongDialog extends React.Component<ESDProps, {}> {
                 <RS.Label for={ident}>
                     {name}
                 </RS.Label>
-                <RS.Input type={type} name={ident} value={value}/>
+                <RS.Input type={type} name={ident} id={ident} defaultValue={value}/>
             </RS.FormGroup>;
         }).filter(tag => tag);
         return <RS.Form onSubmit={this.applyEdits}>

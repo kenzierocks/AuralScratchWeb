@@ -7,6 +7,7 @@ import RS from "reactstrap";
 import {SimpleModal} from "../components/simpleModal";
 import {EditSongDialog} from "../components/editSongDialog";
 import {TC_UUID} from "../idConstants";
+import {optional} from "../optional";
 
 
 type SongTableRowProps = {
@@ -31,9 +32,13 @@ class SongTableRow extends React.Component<SongTableRowProps, { open: boolean }>
     };
 
     render() {
-        const cols = this.props.song.tags.map(tag => {
-            return <td key={tag._key}>
-                {tag.value}
+        const cols = this.props.tagCategories.map(tc => {
+            const assocTag = this.props.song.sortingTags[TC_UUID(tc)];
+            return <td key={TC_UUID(tc)}>
+                {typeof assocTag !== "undefined"
+                    ? optional(this.props.song.tags[assocTag])
+                        .map(tag => tag.value).orElse('Error, missing assocTag ' + assocTag)
+                    : ''}
             </td>;
         });
         while (cols.length < this.props.tagCatColElements.length) {
@@ -41,9 +46,10 @@ class SongTableRow extends React.Component<SongTableRowProps, { open: boolean }>
         }
         return <tr key={this.props.song.key} onClick={this.toggle}>
             <SimpleModal toggle={this.toggle} open={this.state.open} title="Edit Song" backdrop="static">
-                <EditSongDialog song={this.props.song} tagCategories={this.props.tagCategories} closeDialog={this.toggle}/>
+                <EditSongDialog song={this.props.song} tagCategories={this.props.tagCategories}
+                                closeDialog={this.toggle}/>
             </SimpleModal>
-            <td>{this.props.index}</td>
+            <td>{this.props.index + 1}</td>
             {cols}
         </tr>;
     }
@@ -64,7 +70,8 @@ function SongListTable(props: SongListTableProps) {
             <th className="text-center" key={tc.name}>{tc.name}</th>
         );
         rows = props.songs.map((song: Song, index) =>
-            <SongTableRow song={song} tagCategories={displaySettings.tagCategories} tagCatColElements={tagCategories} index={index}/>
+            <SongTableRow song={song} tagCategories={displaySettings.tagCategories} tagCatColElements={tagCategories}
+                          index={index}/>
         );
     }
     return <RS.Table bordered={true} striped={true} hover={true}>
