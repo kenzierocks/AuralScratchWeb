@@ -50,7 +50,7 @@ class SongTableRow extends React.Component<SongTableRowProps, { open: boolean }>
                 return <span key={i}/>;
             }
             const tagCat = checkNotNull(this.props.tagCategories.get(tag.category));
-            return <span key={i} className="badge badge-pill badge-default m-1 float-left" style={{
+            return <span key={i} className="badge badge-pill m-1 float-left song-tag" style={{
                 backgroundColor: '#' + hashColor(tagCat.name)
             }}>
 

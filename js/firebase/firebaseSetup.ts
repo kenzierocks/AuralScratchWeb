@@ -34,8 +34,7 @@ const uiConfig: IConfig = {
     signInFlow: 'popup',
     signInSuccessUrl: location.href,
     signInOptions: [
-        firebase.auth.GoogleAuthProvider.PROVIDER_ID,
-        firebase.auth.EmailAuthProvider.PROVIDER_ID
+        firebase.auth.GoogleAuthProvider.PROVIDER_ID
     ],
     tosUrl: 'http://ascratch.kenzierocks.me/#tos'
 };

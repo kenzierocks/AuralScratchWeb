@@ -31,3 +31,11 @@ body {
 .cursor-pointer {
     cursor: pointer;
 }
+
+.song-tag {
+    border: solid rgba(0, 0, 0, 0);
+}
+
+.song-tag:hover {
+    border: solid #3366cc;
+}
