@@ -92,3 +92,7 @@ export const addTagCategory = ac<TagCategoryAddition>('ADD_TAG_CATEGORY');
 export const removeTagCategory = ac<string>('REMOVE_TAG_CATEGORY');
 export const addSongListDisplaySettings = ac<SongListDisplaySettingAddition>('ADD_SONG_LIST_DISPLAY_SETTINGS');
 export const removeSongListDisplaySettings = ac<string>('REMOVE_SONG_LIST_DISPLAY_SETTINGS');
+
+export const playSong = ac<string>('PLAY_SONG');
+export const setPlayingSong = ac<string | undefined>('SET_PLAYING_SONG');
+export const pauseSong = ac<string>('PAUSE_SONG');

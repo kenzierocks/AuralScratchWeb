@@ -13,7 +13,7 @@ export interface Optional<T> {
 
     orElse(other: T): T
 
-    orElse(other: undefined): T | undefined
+    orElseUndefined(): T | undefined
 }
 
 class OptionalImpl<T> implements Optional<T> {
@@ -39,7 +39,11 @@ class OptionalImpl<T> implements Optional<T> {
         return this;
     }
 
-    orElse(other: T | undefined): T {
+    orElse(other: T): T {
+        return this.value;
+    }
+
+    orElseUndefined(): T {
         return this.value;
     }
 }
@@ -62,6 +66,9 @@ const EMPTY_OPTIONAL: Optional<any> = {
     },
     orElse(other: any): any {
         return other;
+    },
+    orElseUndefined(): undefined {
+        return undefined;
     }
 };
 

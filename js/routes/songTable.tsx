@@ -2,9 +2,11 @@ import {React} from "./rbase";
 import {
     FilledSLDisplaySettings,
     Song,
-    SongListDisplaySettings, Tag,
+    SongListDisplaySettings,
+    Tag,
     TagCategory,
-    TagCategoryMap, TCType
+    TagCategoryMap,
+    TCType
 } from "../datatypes/main";
 import {connectAdvanced} from "react-redux";
 import {InternalState} from "../datatypes/redux";
@@ -15,12 +17,18 @@ import {EditSongDialog} from "../components/editSongDialog";
 import {checkNotNull, isNullOrUndefined} from "../preconditions";
 import {hashColor} from "../color";
 import {STC_NAME, TC_UUID} from "../idConstants";
+import {MouseEvent, MouseEventHandler} from "react";
+import {Dispatch} from "redux";
+import {pauseSong, playSong} from "../datatypes/actions";
 
 
 type SongTableRowProps = {
     song: Song,
     tagCategories: TagCategoryMap
-    index: number
+    index: number,
+    playing: boolean,
+    playSong: () => void,
+    pauseSong: () => void
 };
 
 class SongTableRow extends React.Component<SongTableRowProps, { open: boolean }> {
@@ -33,9 +41,60 @@ class SongTableRow extends React.Component<SongTableRowProps, { open: boolean }>
 
     toggle = () => {
         this.setState(state => ({
+            ...state,
             open: !state.open
         }));
     };
+
+    clickBadge(tag: Tag, tagCategory: TagCategory) {
+        return (e: MouseEvent<HTMLElement>) => {
+            try {
+                console.log(`Searching for ${TCType.formatTag(tagCategory.type, tagCategory.name, tag.value)}...`);
+            } finally {
+                e.stopPropagation();
+            }
+        };
+    }
+
+    hoverStart: MouseEventHandler<HTMLElement> = e => {
+        const tableParent = $(e.currentTarget).closest('.table');
+        tableParent.removeClass('table-hover');
+    };
+
+    hoverEnd: MouseEventHandler<HTMLElement> = e => {
+        const tableParent = $(e.currentTarget).closest('.table');
+        tableParent.addClass('table-hover');
+    };
+
+    playSong: MouseEventHandler<HTMLElement> = e => {
+        try {
+            this.props.playSong();
+        } finally {
+            e.stopPropagation();
+        }
+    };
+
+    pauseSong: MouseEventHandler<HTMLElement> = e => {
+        try {
+            this.props.pauseSong();
+        } finally {
+            e.stopPropagation();
+        }
+    };
+
+    renderPlayingData() {
+        if (this.props.playing) {
+            return <span className="fa-stack fa-lg play-button" aria-hidden={true} onClick={this.pauseSong}>
+                    <i className="fa fa-circle fa-stack-2x pb-background" aria-hidden={true}/>
+                    <i className="fa fa-pause-circle fa-stack-1_5x" aria-hidden={true}/>
+                </span>;
+        } else {
+            return <span className="fa-stack fa-lg play-button" aria-hidden={true} onClick={this.playSong}>
+                    <i className="fa fa-circle fa-stack-2x pb-background" aria-hidden={true}/>
+                    <i className="fa fa-play-circle fa-stack-1_5x" aria-hidden={true}/>
+                </span>;
+        }
+    }
 
     render() {
         let nameTag: Tag = {category: '', value: undefined};
@@ -52,8 +111,7 @@ class SongTableRow extends React.Component<SongTableRowProps, { open: boolean }>
             const tagCat = checkNotNull(this.props.tagCategories.get(tag.category));
             return <span key={i} className="badge badge-pill m-1 float-left song-tag" style={{
                 backgroundColor: '#' + hashColor(tagCat.name)
-            }}>
-
+            }} onClick={this.clickBadge(tag, tagCat)} onMouseEnter={this.hoverStart} onMouseLeave={this.hoverEnd}>
                 {TCType.formatTag(tagCat.type, tagCat.name, tag.value)}
             </span>;
         });
@@ -62,6 +120,9 @@ class SongTableRow extends React.Component<SongTableRowProps, { open: boolean }>
                 <EditSongDialog song={this.props.song} tagCategories={this.props.tagCategories}
                                 closeDialog={this.toggle}/>
             </SimpleModal>
+            <td className="p-0">
+                {this.renderPlayingData()}
+            </td>
             <td>{this.props.index + 1}</td>
             <td style={{whiteSpace: "nowrap"}}>{nameTag.value}</td>
             <td><h4>{badges}</h4></td>
@@ -71,8 +132,11 @@ class SongTableRow extends React.Component<SongTableRowProps, { open: boolean }>
 
 
 type SongListTableProps = {
+    playingSong?: string,
     songs: Song[],
-    displaySettings?: FilledSLDisplaySettings
+    displaySettings?: FilledSLDisplaySettings,
+    playSong: (song: string) => void,
+    pauseSong: (song: string) => void
 };
 
 function SongListTable(props: SongListTableProps) {
@@ -80,12 +144,16 @@ function SongListTable(props: SongListTableProps) {
     let rows: any[] = [];
     if (displaySettings) {
         rows = props.songs.map((song: Song, index) =>
-            <SongTableRow song={song} tagCategories={displaySettings.tagCategories} index={index} key={index}/>
+            <SongTableRow song={song} tagCategories={displaySettings.tagCategories} index={index} key={index}
+                          playing={song.key === props.playingSong}
+                          playSong={props.playSong.bind(null, song.key)}
+                          pauseSong={props.pauseSong.bind(null, song.key)}/>
         );
     }
     return <RS.Table bordered={true} striped={true} hover={true}>
         <thead className="thead-inverse">
         <tr>
+            <th className="text-center"/>
             <th className="text-center">#</th>
             <th className="text-center">Name</th>
             <th className="text-center">Tag Cloud</th>
@@ -116,11 +184,17 @@ function fillDisplaySettings(state: InternalState, displaySettingsFb: SongListDi
 export type SongListProps = { uuid?: string };
 
 export const SongList = (() => {
-    const UNDEFINED_SONG_LIST: SongListTableProps = {songs: []};
+    const UNDEFINED_SONG_LIST: SongListTableProps = {
+        songs: [],
+        playSong() {
+        },
+        pauseSong() {
+        }
+    };
     const songListSelector = createCachedSelector(
         (state: InternalState) => state,
         (state: InternalState, props: SongListProps) => state.songLists && props.uuid && state.songLists.get(props.uuid),
-        (state: InternalState, songList): SongListTableProps => {
+        (state: InternalState, songList): Pick<SongListTableProps, 'songs' | 'displaySettings' | 'playingSong'> => {
             if (!songList) {
                 return UNDEFINED_SONG_LIST;
             }
@@ -143,14 +217,19 @@ export const SongList = (() => {
                 i++;
             }
             return {
+                playingSong: state.playingSong,
                 songs: songs,
                 displaySettings: displaySettings
             };
         }
     )((state, props) => props.uuid || '');
-    const stateToProps = () => {
+    const stateToProps = (dispatch: Dispatch<InternalState>) => {
         return (state: InternalState, ownProps: SongListProps): SongListTableProps => {
-            return songListSelector(state, ownProps);
+            return {
+                ...songListSelector(state, ownProps),
+                playSong: song => dispatch(playSong(song)),
+                pauseSong: song => dispatch(pauseSong(song))
+            };
         };
     };
 

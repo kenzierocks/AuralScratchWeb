@@ -27,6 +27,7 @@ import {
 import {Provider} from "react-redux";
 import {standardTagCategories} from "./idConstants";
 import {checkNotNull} from "./preconditions";
+import {subscribeAll} from "./datatypes/observers";
 
 function getRoutes() {
     const routes = new Map<string, Route>();
@@ -149,4 +150,6 @@ $(() => {
         }
         REDUX_STORE.dispatch(authStateChanged(!!user));
     });
+    // subscribe stuff to state
+    subscribeAll(REDUX_STORE);
 });

@@ -1,17 +1,19 @@
 import {SongListDisplaySettingsMap, SongListMap, SongMap, TagCategoryMap} from "./main";
 import {createStore, Store} from "redux";
 import {
-    ac,
     addSong,
     addSongList,
     addSongListDisplaySettings,
-    addTagCategory, authStateChanged,
+    addTagCategory,
+    authStateChanged,
     combineReducerSlices,
     MapAddition,
+    pauseSong,
+    playSong,
     removeSongList,
     removeSongListDisplaySettings,
     removeTagCategory,
-    setLibraryId,
+    setLibraryId, setPlayingSong,
     SimpleAction,
     SimpleActionCreator
 } from "./actions";
@@ -28,7 +30,9 @@ export interface InternalState {
     songs?: SongMap
     songLists?: SongListMap
     tagCategories?: TagCategoryMap
-    songListDisplaySettings?: SongListDisplaySettingsMap
+    songListDisplaySettings?: SongListDisplaySettingsMap,
+    songToPlay?: string,
+    playingSong?: string
 }
 
 function setReducer<S>(initialState: S, sac: SimpleActionCreator<S, SimpleAction<S>>) {
@@ -68,6 +72,15 @@ function removeReducer<S extends Map<string, any>>(initialState: S, sac: SimpleA
 const mainReducer = combineReducerSlices<InternalState>({
     signedIn: false
 }, {
+    songToPlay: [
+        playSong.reducer((state: string, action: SimpleAction<string>) => {
+            return action.payload;
+        }),
+        pauseSong.reducer(() => undefined)
+    ],
+    playingSong: [
+        setPlayingSong.reducer((state: string | undefined, action: SimpleAction<string | undefined>) => action.payload)
+    ],
     librarySongList: [
         setReducer(undefined, setLibraryId)
     ],
@@ -88,6 +101,7 @@ const mainReducer = combineReducerSlices<InternalState>({
         removeReducer(new Map(), removeSongListDisplaySettings)
     ]
 });
+// note to self -- this is separate so it can clear the whole state on sign-out
 const signOutReducer = authStateChanged.reducer((state: InternalState, action: SimpleAction<boolean>) => {
     if (action.type !== authStateChanged.type || state.signedIn === action.payload) {
         return state;

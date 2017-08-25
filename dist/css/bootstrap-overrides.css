@@ -6,20 +6,9 @@ body {
     font-size: 2rem;
 }
 
-/* what the actual fuck browsers... */
 .cfc-center {
     text-align: center;
     width: 100%;
-}
-
-.custom-file-input {
-    min-width: 0;
-    width: 0;
-    opacity: 0;
-}
-
-.cfc-hovering.custom-file-control::before {
-    background-color: #fefde7;
 }
 
 #add-song-button {
@@ -38,4 +27,17 @@ body {
 
 .song-tag:hover {
     border: solid #3366cc;
+}
+
+/* This is dumb, bootstrap... */
+.table td {
+    vertical-align: middle;
+}
+
+.play-button .pb-background {
+    color: #17CCCC;
+}
+
+.play-button:hover .pb-background {
+    color: #18E7E7;
 }
